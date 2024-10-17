@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"os/exec"
 )
 
@@ -25,12 +24,12 @@ type Vulnerability struct {
 }
 
 type vulnerability struct {
-	Name         string          `json:"name"`
-	Severity     string          `json:"severity"`
-	Range        string          `json:"range"`
-	Nodes        []string        `json:"nodes"`
+	Name         string            `json:"name"`
+	Severity     string            `json:"severity"`
+	Range        string            `json:"range"`
+	Nodes        []string          `json:"nodes"`
 	Via          []json.RawMessage `json:"via"`
-	FixAvailable json.RawMessage `json:"fixAvailable"`
+	FixAvailable json.RawMessage   `json:"fixAvailable"`
 }
 
 var falseBytes = []byte("false")
@@ -94,10 +93,9 @@ type Metadata struct {
 	Dependencies    Dependencies    `json:"dependencies"`
 }
 
-func parseAuditReport(r io.Reader) (*AuditReport, error) {
+func parseAuditReport(s string) (*AuditReport, error) {
 	var result AuditReport
-	dec := json.NewDecoder(r)
-	err := dec.Decode(&result)
+	err := json.Unmarshal([]byte(s), &result)
 	if err != nil {
 		return nil, err
 	}
@@ -107,26 +105,22 @@ func parseAuditReport(r io.Reader) (*AuditReport, error) {
 func ExecNpmAudit(ctx context.Context, root string) (*AuditReport, error) {
 	cmd := exec.CommandContext(ctx, "npm", "audit", "--json")
 	cmd.Dir = root
-	r, err := cmd.StdoutPipe()
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+
+	err := cmd.Start()
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	_ = cmd.Wait()
+	if err != nil && cmd.ProcessState.ExitCode() != 1 {
+		return nil, err
+	}
+
 	var result *AuditReport
-	var parseErr error
-	go func() {
-		result, parseErr = parseAuditReport(r)
-	}()
-	err = cmd.Start()
+	result, err = parseAuditReport(stdout.String())
 	if err != nil {
 		return nil, err
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return nil, err
-	}
-	if parseErr != nil {
-		return nil, parseErr
 	}
 	return result, nil
 }

@@ -27,7 +27,6 @@ func ParseJSSourcemapFile(path string) ([]Module, error) {
 	dec := json.NewDecoder(f)
 	var sm sourceMap
 	dec.Decode(&sm)
-
 	for _, source := range sm.Sources {
 		modulePath := source
 		if strings.HasPrefix(source, "webpack:///.") {
@@ -171,6 +170,7 @@ func parseJSModulePaths(origModulePaths string) []Module {
 			return result
 		}
 		parsed := parseJSModulePath(modulePath)
+
 		if parsed != nil {
 			result = append(result, *parsed)
 		}

@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/future-architect/linkedpackage"
-	"github.com/future-architect/linkedpackage/npmaudit"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/future-architect/linkedpackage"
+	"github.com/future-architect/linkedpackage/npmaudit"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -23,7 +24,7 @@ var (
 	licenseCmd   = app.Command("license", "dump license")
 	licenseTitle = licenseCmd.Flag("title", "report title").Default("Used OSS Licenses").String()
 
-	auditCmd = app.Command("audit", "audit check")
+	auditCmd          = app.Command("audit", "audit check")
 	auditOutputFormat = auditCmd.Flag("audit-format", "export format").Default("plain").Enum("plain", "json")
 )
 
@@ -43,10 +44,11 @@ func main() {
 
 func checkAudit(jsRoot string, jsFolders, jsExtraPackages []string, format string, writer io.Writer) {
 	parsedModules := readJSPackages(jsFolders, jsExtraPackages, jsRoot)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	auditReports, err := npmaudit.ExecNpmAudit(ctx, jsRoot)
 	if err != nil {
+		fmt.Println(err)
 		log.Fatal(err)
 	}
 	audits := map[string]npmaudit.Vulnerability{}
@@ -65,7 +67,7 @@ func checkAudit(jsRoot string, jsFolders, jsExtraPackages []string, format strin
 				if i != 0 {
 					fmt.Printf("    ------\n")
 				}
-				fmt.Printf("    [%s] %s @ %s\n",  c.Severity, c.Name, c.Range)
+				fmt.Printf("    [%s] %s @ %s\n", c.Severity, c.Name, c.Range)
 				fmt.Printf("    %s\n", c.Title)
 				fmt.Printf("    %s\n", c.URL)
 			}
